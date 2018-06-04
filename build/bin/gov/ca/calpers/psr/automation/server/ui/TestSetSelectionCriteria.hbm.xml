@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Sep 4, 2015 2:14:25 PM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="gov.ca.calpers.psr.automation.server.ui.TestSetSelectionCriteria" table="TS_SELECTION_CRITERIA">        
+        <id name="criteriaId" type="long" access="field">
+            <column name="TS_CRITERIA_ID" />
+            <generator class="sequence">
+            	<param name="sequence">TS_CRITERIA_SEQ</param>
+            </generator>
+        </id>
+        <property name="testSetId" type="long">
+            <column name="AUTOMATION_TEST_SET_ID" />            
+        </property>
+        <property name="selectionCode" type="java.lang.String">
+            <column name="SELECTION_CODE" />
+        </property>
+        <property name="selectionType">
+            <column name="SELECTION_TYPE" />
+            <type name="org.hibernate.type.EnumType">
+                <param name="useNamed">true</param>
+                <param name="enumClass">gov.ca.calpers.psr.automation.server.ui.TestSetSelectionType</param>
+            </type>
+        </property>
+    </class>
+</hibernate-mapping>

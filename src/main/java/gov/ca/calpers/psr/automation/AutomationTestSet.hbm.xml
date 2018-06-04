@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Jul 21, 2015 5:55:18 PM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="gov.ca.calpers.psr.automation.AutomationTestSet" table="AUTOMATION_TEST_SET">
+        <id name="testSetId" type="int" access="field">
+            <column name="TEST_SET_ID" />
+            <generator class="sequence">
+            	<param name="sequence">AUTOMATION_TEST_SET_SEQ</param>
+            </generator>
+        </id>
+        <property name="testSetName" type="java.lang.String">
+            <column name="TEST_SET_NAME" />
+        </property>
+        
+        <property name="retryLimit" type="int">
+            <column name="RETRY_LIMIT" />
+        </property>       
+        <property name="runStatus" type="java.lang.String">
+            <column name="RUN_STATUS" />            
+        </property>
+        <property name="almPath" type="java.lang.String">
+            <column name="ALM_PATH" />
+        </property>
+         <set name="tests" table="AUTOMATION_TEST_SET_SCRIPT" inverse="false" lazy="false">
+            <key>
+                <column name="TEST_SET_ID" not-null="true" />
+            </key>
+            <many-to-many entity-name="gov.ca.calpers.psr.automation.AutomationTest">
+                <column name="AUTOMATION_SCRIPT_ID" not-null="true" />
+            </many-to-many>
+        </set>
+        <property name="release" type="java.lang.String">
+        	<column name="RELEASE" not-null="true"/>
+        </property>
+        <property name="round" type="java.lang.String">
+        	<column name="ROUND" not-null="true"/>
+        </property>
+        <property name="hardStopRoll" type="char">
+        	<column name="HARD_STOP_ROLL" not-null="true"/>
+        </property>
+        <property name="createdBy" type="java.lang.String">
+        	<column name="CREATED_BY" not-null="true"/>
+        </property>
+        <set name="testSetSelectionCriteria" table="TS_SELECTION_CRITERIA" 
+				inverse="true" lazy="false" fetch="select">
+            <key>
+                <column name="AUTOMATION_TEST_SET_ID" not-null="true" />
+            </key>
+            <one-to-many class="gov.ca.calpers.psr.automation.server.ui.TestSetSelectionCriteria" />
+        </set> 
+    </class>
+</hibernate-mapping>

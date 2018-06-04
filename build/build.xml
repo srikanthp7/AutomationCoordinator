@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+ <project basedir="." default="jar" >
+ <property name="source.dir"     value="src/main/java"/>
+ <property name="resources.dir"  value="src/main/resources"/>
+ <property name="lib.dir"        value="lib"/>
+ <property name="class.dir"      value="build"/>
+ <property name="jar.dir"        value="dist"/>
+  <target name="init" depends="clean">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${class.dir}"/>
+   </target>
+  <path id="xml.path">    
+ 	 	        <fileset dir="${source.dir}">
+ 	 	        <include name="**/*.cfg.xml" />
+ 	 	        <include name="**/*.hbm.xml" />
+ 	 	         </fileset>
+ 	 	</path>
+ 	<path id="libraries.path">    
+ 	        <fileset dir="${lib.dir}">
+ 	         <include name="*.jar"/>
+ 	        </fileset>
+ 	</path>
+ 	<path id="log4j.classpath">
+ 	        <file file="resources.dir/log4j.properties"/>
+ 	</path>
+ 	<!-- Delete old files -->
+ 	<target name="clean" description="delete old files" >
+ 		<delete dir="${class.dir}"/>
+ 		<delete dir="${jar.dir}"/>
+ 	</target>
+ 	<!-- Compilining the classes -->
+  <target name="compile"  depends="init">
+  	<javac destdir="${class.dir}"  debug="on" target="1.7">
+  	  <src path="${source.dir}"/>
+  	  
+	  <classpath refid="libraries.path"/>
+  		
+  	</javac>  	  
+  	<copy todir="${class.dir}">
+  		<fileset dir="${source.dir}">
+  		   <include name="**/*.cfg" />
+  		   <include name="**/*.cfg.xml" />
+  		   <include name="**/*.hbm.xml" />
+  		   <include name="**/*.png" />
+  		   <include name="**/*.jpg" />
+  		</fileset>
+  		 <fileset dir=".">
+  		 	<include name="**/server-manifest.txt" />
+  		    <include name="**/*.xml" />
+  		    <include name="**/*.png" />
+  		   	<exclude name="src" />
+  		   	<exclude name="**/pom.xml" />
+  		  </fileset>
+  	</copy>
+  	 
+  </target>
+ 	<!-- Creating Jar File -->
+  <target name="jar" depends="compile">
+  	
+   <mkdir dir="${jar.dir}"/>
+    <copy todir="${class.dir}" flatten="true">
+      <path refid="libraries.path"/>
+    </copy>
+   <sleep seconds="1" />
+       <jar destfile="${jar.dir}/Client1_123.jar"  basedir="${class.dir}" filesetmanifest="mergewithoutmain" >
+    	
+   <fileset dir="META-INF" >
+    <include name="**/*.MF" />
+   </fileset>   
+   
+    <fileset dir="${resources.dir}" />
+     
+       	<manifest>
+       	  <attribute name="Built-By" value="${user.name}"/>
+       	  <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> 
+       		<!-- <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />-->
+       	  <attribute name="SplashScreen-Image" value="client_splash.png" />
+       	  <attribute name="Class-Path" value="libraries.path"/>
+       	</manifest>
+      
+       	<fileset dir="bin" />
+       	<zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+        
+   </jar>
+
+	<jar destfile="${jar.dir}/temp_final.jar" filesetmanifest="skip">
+ 	 			       
+		<manifest>
+		       	  <attribute name="Built-By" value="${user.name}"/>
+				  <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> 
+			<!--    <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />-->
+		       	  <attribute name="SplashScreen-Image" value="client_splash.png" />
+		       	  <attribute name="Class-Path" value="libraries.path"/>
+		       	</manifest>
+		 <zipgroupfileset dir="dist" includes="*.jar"/>
+ 		 			    </jar>
+ 	  	 <zip destfile="${jar.dir}/Client_1.3.1.jar">
+ 	
+ 		        <zipfileset src="${jar.dir}/temp_final.jar"
+ 
+ 		        excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+ 	     </zip>
+  		<delete file="${jar.dir}/temp_final.jar"/>
+  </target>
+ </project>

@@ -1,0 +1,169 @@
+'VBScript Document
+Option Explicit
+'QC Paramters
+Dim Server, UserName, Password, QCDomain, QCProject, QCTestSetPath, QCTestSetName, QCTestScenarioFilter, QCTestScenarioName, testsToExecute 
+
+Server = "http://qualitycenter.calpers.ca.gov:8080/qcbin/"
+UserName = "%s"
+QCDomain = "PSR"
+QCProject = "PSR_ATS"
+
+
+''' <summary>
+''' Loads an instance of QCRunTestSet and initiates the scheduling controller
+''' </summary>
+Public Sub RunTestSet(Server, UserName, Password, QCDomain, QCProject)
+    Dim QCTestSetExec, sErr, arrArgs, ix, arg, bExit
+    
+    sErr = "Unable to execute RunTestSet. Please provide the "
+    arrArgs = Array("Server", "UserName", "Password", "QCDomain", "QCProject")
+    bExit = False
+    
+    For ix = LBound(arrArgs) To UBound(arrArgs)
+        Execute "arg = " & arrArgs(ix)
+        If arg = "" Then
+            WScript.Echo (sErr & arrArgs(ix) & ".")
+            bExit = True
+        End If
+    Next
+    
+    If bExit Then Exit Sub
+    
+    Set QCTestSetExec = New QCRunTestSet
+    
+    With QCTestSetExec
+        .Server = Server
+        .UserName = UserName
+        .Password = Password
+        .QCDomain = QCDomain
+        .QCProject = QCProject
+        .Run
+    End With
+    Set QCTestSetExec = Nothing
+End Sub
+
+Class QCRunTestSet
+    
+    Public Server
+    Public UserName
+    Public Password
+    Public QCDomain
+    Public QCProject 
+    Public EMailTo
+    Public TSTestFactory
+    Public dtStartTime
+
+    
+'Private Variables
+    
+    Private qtApp
+    Private TDConnection
+    
+    Public Default Sub Run()
+        Dim bStatus, dtStartTime
+        
+        bStatus = isQCConnected
+        
+        If bStatus Then bStatus = isQTPInstalled
+        
+        If Not bStatus Then Exit Sub
+        'Gary_Deng@CalPERS.CA.GOV;Hieu_Giang@CalPERS.CA.GOV;Tina_Lyon@CalPERS.ca.gov;Tuan_Ta@CalPERS.CA.GOV
+        TDConnection.SendMail "%s", "%s", "%s", ""
+       
+    End Sub
+    
+    
+'Private Methods
+   
+    
+    ''' <summary>
+    ''' Returns true if QC Connection was successful with the supplied input
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Function isQCConnected()
+        isQCConnected = False
+        
+        Dim UserName, Password
+        UserName = Me.UserName
+        Password = Me.Password
+        On Error Resume Next
+            Set TDConnection = CreateObject("TDApiOle80.TDConnection")
+            If Err.Number <> 0 Then
+                WScript.Echo ("Unable to create an instance of the TestDirector API " & _
+                        "OLE (TestDirector Connection) Object.")
+                Err.Clear : Exit Function
+            End If
+            With TDConnection
+                'Create a connection with the QC Server
+                .InitConnectionEx Server
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                End If
+                'Login to QC
+                .Login UserName, Password
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                ElseIf Not .LoggedIn Then
+                    WScript.Echo ( "Unable to login to Quality Center. Please verify your login " & _
+                            "credentials.")
+                    Exit Function
+                End If
+                'Connect to QC Project
+                .Connect QCDomain, QCProject
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                ElseIf Not .ProjectConnected Then
+                    WScript.Echo("Unable to connect to '" & QCDomain & "/" & QCProject & "'.")
+                    Exit Function
+                End If
+                isQCConnected = True
+            End With
+        On Error Goto 0
+    End Function
+    
+    ''' <summary>
+    ''' Returns true if QTP is installed on the target machine
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Function isQTPInstalled()
+        isQTPInstalled = False
+        On Error Resume Next
+            Set qtApp = GetObject("", "QuickTest.Application")
+            If Err.Number <> 0 Then
+                WScript.Echo (Err.Description)
+                Exit Function
+            Else
+                qtApp.Launch()
+                qtApp.Visible = True
+                
+                isQTPInstalled = True
+            End If
+        On Error Goto 0
+    End Function
+    
+'Class Initialize & Terminate
+
+    Private Sub Class_Terminate()
+        On Error Resume Next
+            'Disconnect TD session
+            TDConnection.Disconnect
+            'Disconect and quit QTP
+            If IsObject(qtApp) Then
+                If qtApp.TDConnection.IsConnected Then qtApp.TDConnection.Disconnect
+                qtApp.Quit
+            End If
+        On Error Goto 0
+        Set qtApp = Nothing
+        Set TDConnection = Nothing
+    End Sub
+End Class ''RunTestSet
+
+If Wscript.Arguments.Count <> 1 Then
+    WScript.Echo ("Password is required")
+Else
+    Password = Wscript.Arguments(0)
+    Call RunTestSet(Server, UserName, Password, QCDomain, QCProject)
+End If

@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: gov.ca.calpers.psr.automation.client.ui.ClientPanel
+SplashScreen-Image: client_splash.png
+Class-Path: lib/

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Aug 19, 2015 11:09:58 AM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="gov.ca.calpers.psr.automation.ALMServerConfig" table="ALM_SERVER_CONFIG" mutable="false">       
+        <id name="id" type="int" access="field">
+            <column name="ID" />
+            <generator class="sequence-identity"/>            	
+        </id>
+        <property name="serverName" type="java.lang.String">
+            <column name="SERVER_NAME" />
+        </property>
+        <property name="port" type="int">
+            <column name="PORT" />
+        </property>
+        <property name="almDomain" type="java.lang.String">
+            <column name="ALM_DOMAIN" />
+        </property>
+        <property name="almProject" type="java.lang.String">
+            <column name="ALM_PROJECT" />
+        </property>
+        <property name="username" type="java.lang.String">
+            <column name="USERNAME" />
+        </property>
+        <property name="password" type="java.lang.String">
+            <column name="CREDENTIAL" />
+        </property>
+    </class>
+</hibernate-mapping>

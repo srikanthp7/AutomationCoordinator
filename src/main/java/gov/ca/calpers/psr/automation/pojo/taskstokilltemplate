@@ -1,0 +1,6 @@
+taskkill /f /im "QTAutomationAgent.exe"
+taskkill /f /im "wexectrl.exe"
+taskkill /f /im "iexplore.exe"
+taskkill /f /im "AQTRmtAgent.exe"
+taskkill /f /im "UFT.exe"
+taskkill /f /im "cscript.exe"

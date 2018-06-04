@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd" >
+<hibernate-mapping>
+	<typedef class="gov.ca.calpers.psr.automation.directed.graph.EdgeTypeUserType" name="EdgeTypeUserType" />
+	<typedef class="gov.ca.calpers.psr.automation.RollIndicatorUserType" name="RollIndicatorUserType" />
+</hibernate-mapping>

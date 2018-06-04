@@ -1,0 +1,470 @@
+'VBScript Document
+Option Explicit
+'QC Paramters
+Dim Server, UserName, Password, QCDomain, QCProject, QCTestSetPath, QCTestSetName, QCTestName, testsToExecute ,testRunStatus
+
+
+Server = "%s"
+QCDomain = "%s"
+QCProject = "%s"
+UserName = "%s"
+
+
+QCTestSetPath = "%s"
+QCTestSetName = "%s"
+QCTestName = "%s"
+
+''' <summary>
+''' Loads an instance of QCRunTestSet and initiates the scheduling controller
+''' </summary>
+Public Sub RunTestSet(Server, UserName, Password, QCDomain, QCProject, QCTestSetPath, QCTestSetName, QCTestName)
+    Dim QCTestSetExec, sErr, arrArgs, ix, arg, bExit
+    
+    sErr = "Unable to execute RunTestSet. Please provide the "
+    arrArgs = Array("Server", "UserName", "Password", "QCDomain", "QCProject", "QCTestSetPath", "QCTestSetName", "QCTestName")
+    bExit = False
+    
+    For ix = LBound(arrArgs) To UBound(arrArgs)
+        Execute "arg = " & arrArgs(ix)
+        If arg = "" Then
+            WScript.Echo (sErr & arrArgs(ix) & ".")
+            bExit = True
+        End If
+    Next
+    
+    If bExit Then Exit Sub
+    
+    Set QCTestSetExec = New QCRunTestSet
+    
+    With QCTestSetExec
+        .Server = Server
+        .UserName = UserName
+        .Password = Password
+        .QCDomain = QCDomain
+        .QCProject = QCProject
+        .QCTestSetPath = QCTestSetPath
+        .QCTestSetName = QCTestSetName        
+        .Run
+    End With
+    
+    Set QCTestSetExec = Nothing
+End Sub
+
+Class QCRunTestSet
+    
+    Public Server
+    Public UserName
+    Public Password
+    Public QCDomain
+    Public QCProject
+    Public QCTestSetPath
+    Public QCTestSetName    
+    Public EMailTo
+    Public TSTestFactory
+    Public ExecutionStatus
+    Public iBlocked
+    Public iFailed
+    Public iNA
+    Public iNoRun
+    Public iNotCompleted
+    Public iPassed
+    Public dtStartTime    
+
+    
+'Private Variables
+    
+    Private qtApp
+    Private TDConnection
+    Private TSScheduler
+    Private TSFolder
+    Private testFinished
+    
+    Public Default Sub Run()
+        Dim bStatus, dtStartTime, intIndex
+        testFinished = False
+        bStatus = isQCConnected
+        
+        If bStatus Then bStatus = isQTPInstalled
+        
+        If Not bStatus Then         
+        	Exit Sub
+        End If
+        
+        Dim TSTreeManager, QCTestSetPath, TSList, QCTestSetName, TestSet, qtTest, sEnvironment, TSReport, EMailTo, ExecutionStatus
+
+        Set TSTreeManager = TDConnection.TestSetTreeManager 
+        QCTestSetPath = Me.QCTestSetPath        
+        Set TSFolder = TSTreeManager.NodeByPath(QCTestSetPath) 
+        QCTestSetName = Me.QCTestSetName
+        'Returns the list of test sets contained in the folder that match the specified pattern.
+        'WScript.Echo("The TestSet '" & QCTestSetName & "'") 
+        Set TSList = TSFolder.FindTestSets(QCTestSetName)
+        'If TSList.Count = 0 Then
+        '    WScript.Echo("The TestSet '" & QCTestSetName & "' was not found.")
+        '    Exit Sub
+        'End If
+        ' get first one on the list
+        'For Each TestSet in TSList
+        '    If LCase(TestSet.Name) = LCase(QCTestSetName) Then
+        '        Exit For
+        '    End If
+        'Next
+
+		For intIndex = 1 To TSList.Count
+		Set TestSet = TSList.Item(intIndex)
+		If LCase(TestSet.Name) = LCase(QCTestSetName) Then
+	               Exit For
+       		End If
+		Next
+		
+        Set TestSet = TSList.Item(1)
+        
+        ' if  no test set the exit
+        If IsEmpty(TestSet) then
+            WScript.Echo("The TestSet '" & QCTestSetName & "' was not found.")
+            Exit Sub
+        End If
+
+        'This enables database to update immediately when the field value changes
+        TestSet.AutoPost = True
+        
+        'TSTestFactory manages test instances (TSTest objects) in a test set
+        Set TSTestFactory = TestSet.TSTestFactory
+        Set Me.TSTestFactory = TSTestFactory
+        Dim tdFilter
+        Set tdFilter = TSTestFactory.Filter
+        'scenario filter
+        'tdFilter.Filter("TC_USER_02") = QCTestScenarioFilter
+        ' test name filter
+        If QCTestName = "All" Then
+            ' test all
+        Else
+        	' WScript.Echo("The Test Name: '" & QCTestName & "'")
+
+            'tdFilter.Filter("TC_CYCLE_ID") = TestSet.ID
+            tdFilter.Filter("TS_NAME") = QCTestName
+        End If
+        
+        ' TODO more filter, using test name.
+        set testsToExecute = TSTestFactory.NewList(tdFilter.Text)
+        
+        If testsToExecute.Count <> 1 Then
+        	WScript.Echo("Test Name is not Unique. Tests list count = '" & testsToExecute.Count & "'")        
+        End If
+        
+        For Each qtTest in testsToExecute
+            'Change test status to not run
+            'We do this to ensure all tests have 'not run' before starting execution
+
+            'If the execution errors out, we can keep track of the tests that were not run
+           ' WScript.Echo("Test to Execute: " & qtTest.name)            
+            qtTest.Field("TC_STATUS") = "No Run"
+            'WScript.Echo("Test Status in ALM was changed to No Run.")
+            qtTest.Post
+            'WScript.Echo("Test Status in ALM was posted.")
+        Next
+        If testsToExecute.Count = 0 Then
+            WScript.Echo("Unable to find the test in " & QCTestSetName)
+            Exit Sub
+        End If
+        'Refresh TS and TSFolder
+        'WScript.Echo("Refreshing Test Set")
+        TestSet.Refresh : TSFolder.Refresh
+        'WScript.Echo("Test Set Refreshed.")
+        'TSReport represents the execution report settings for the current test set
+        Set TSReport = TestSet.ExecutionReportSettings
+       ' WScript.Echo("Report settings acquired.")
+        TSReport.Enabled = True
+        On Error Resume Next
+            'TestSet.StartExecution returns the TSScheduler object and starts the Execution controller
+            Set TSScheduler = TestSet.StartExecution("")
+            WScript.Echo("Execution Controller started.")
+            If Err.Number <> 0 Then
+                WScript.Echo(Err.Description & " Error #: " & CStr(Err.Number) & vbNewLine & vbNewLine & "Unable to create the TSScheduler" & _
+                    "object. Please ensure the ALM Client Registration is complete before " & _
+                    "executing RunTestSet.")
+                WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed") 
+                On Error Goto 0
+                Exit Sub
+            End If
+        On Error Goto 0     
+        'Run all tests on localhost
+        TSScheduler.RunAllLocally = True
+        'Logging enabled
+        TSScheduler.LogEnabled = True
+        dtStartTime = Now : Me.dtStartTime = dtStartTime
+        'Start testSet run
+        'WScript.Echo("Test is about to run.")
+        On Error Resume Next
+        TSScheduler.Run(testsToExecute)
+        WScript.Echo("Test is running.")
+        If Err.Number <> 0 Then
+                WScript.Echo(Err.Description & " Error #: " & CStr(Err.Number) & vbNewLine & vbNewLine & "Unable to run the TSScheduler")
+                WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed")                    
+                On Error Goto 0
+                Exit Sub
+            End If
+        On Error Goto 0        
+        'ExecutionStatus represents the execution status of the scheduler
+        Set ExecutionStatus = TSScheduler.ExecutionStatus
+        Set Me.ExecutionStatus = ExecutionStatus
+        'Wait until all tests are complete running
+        WScript.Echo("Wait while test runs.")
+        WaitWhileTestRunning ExecutionStatus
+        TestSet.Refresh : TSFolder.Refresh
+
+        Set ExecutionStatus = Nothing
+        WScript.Echo("Test has finished executing.")
+        testFinished = True 
+         'WScript.Echo("$$$$TEST EXECUTION STATUS$$$$"& "$$$$For TEST$$$$"  & testsToExecute.Field("TS_NAME") & testsToExecute.Field("TS_EXEC_STATUS"))
+         
+               
+    End Sub
+    
+    
+'Private Methods
+    
+    ''' <summary>
+    ''' Loops and retrieves Scheduler's Finished property 
+    ''' until all tests have completed running
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Sub WaitWhileTestRunning(ByVal ExecutionStatus)
+        Dim RunFinished: RunFinished = False
+        Dim i
+        Dim TestExecStatusObj
+        While RunFinished = False           
+            ExecutionStatus.RefreshExecStatusInfo "All", True
+            RunFinished = ExecutionStatus.Finished
+            WScript.Echo("$$$$ExecutionStatus.Finished:$$$$" & ExecutionStatus.Finished)
+            WScript.Sleep(5000)
+            For i = 1 To ExecutionStatus.Count
+            Set TestExecStatusObj = ExecutionStatus.Item(i)
+            Wscript.Echo("Iteration " &  " Status: " & _
+                        " Test " & TestExecStatusObj.testID & _
+                        " ,Test instance " & TestExecStatusObj.TestInstance & _
+                        " ,order " & TestExecStatusObj.TSTestID & " " & _
+                        TestExecStatusObj.Message & ", status=" & _
+                        TestExecStatusObj.Status)
+            testRunStatus = TestExecStatusObj.Status
+            If testRunStatus = "Error" Then
+            	
+            	WScript.Echo(TestExecStatusObj.testID & ":" & TestExecStatusObj.testID & ":Failed")  
+            End If       
+       		Next 
+        Wend
+    End Sub
+    
+    ''' <summary>
+    ''' Returns true if QC Connection was successful with the supplied input
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Function isQCConnected()
+        isQCConnected = False
+        
+        Dim UserName, Password
+        UserName = Me.UserName
+        Password = Me.Password
+        On Error Resume Next
+            Set TDConnection = CreateObject("TDApiOle80.TDConnection")
+            If Err.Number <> 0 Then
+                WScript.Echo ("Unable to create an instance of the TestDirector API " & _
+                        "OLE (TestDirector Connection) Object.")
+                Err.Clear : Exit Function
+            End If
+            With TDConnection
+                'Create a connection with the QC Server
+                .InitConnectionEx Server
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                End If
+                'Login to QC
+                .Login UserName, Password
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                ElseIf Not .LoggedIn Then
+                    WScript.Echo ( "Unable to login to Quality Center. Please verify your login " & _
+                            "credentials.")
+                    Exit Function
+                End If
+                'Connect to QC Project
+                .Connect QCDomain, QCProject
+                If Err.Number <> 0 Then
+                    WScript.Echo (Err.Description)
+                    Exit Function
+                ElseIf Not .ProjectConnected Then
+                    WScript.Echo("Unable to connect to '" & QCDomain & "/" & QCProject & "'.")
+                    Exit Function
+                End If
+                isQCConnected = True
+            End With
+        On Error Goto 0
+    End Function
+    
+    ''' <summary>
+    ''' Returns true if QTP is installed on the target machine
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Function isQTPInstalled()
+        isQTPInstalled = False
+        On Error Resume Next
+            Set qtApp = GetObject("", "QuickTest.Application")
+            If Err.Number <> 0 Then
+                WScript.Echo (Err.Description)
+                WScript.Echo("UFT did not open" & ":" & "UFT did not open"& ":Failed") 
+                Set qtApp = Nothing
+                Exit Function
+            Else
+                qtApp.Launch()
+                qtApp.Visible = True
+                If Err.Number <> 0 Then
+                	WScript.Echo (Err.Description)
+                	WScript.Echo("UFT did not open" & ":" & "UFT did not open"& ":Failed")
+                	qtApp.Quit
+                	Set qtApp = Nothing
+                	Exit Function
+                Else                
+                	isQTPInstalled = True
+                End If
+            End If
+        On Error Goto 0
+    End Function
+    
+'Class Initialize & Terminate
+
+    Private Sub Class_Terminate()
+		WScript.Echo("*** Started Class Terminate Method ***")
+        If IsObject(TSScheduler) Then
+			'WScript.Echo("TSScheduler is an Object")
+            If Not TSScheduler Is Nothing Then				
+                ' get status
+                TSFolder.Refresh : WScript.Sleep(5000)
+                Set TSTestFactory = Me.TSTestFactory                
+                Dim tdFilter
+                Set tdFilter = TSTestFactory.Filter
+                'scenario filter
+                'tdFilter.Filter("TC_USER_02") = QCTestScenarioFilter
+                ' test name filter
+                If QCTestName = "All" Then
+                    ' test all
+                Else
+                        tdFilter.Filter("TS_NAME") = QCTestName
+                End If
+                Set testsToExecute = TSTestFactory.NewList(tdFilter.Text)
+                Dim qtTest
+				WScript.Echo("Number of Tests in Test Set: " & testsToExecute.Count)
+				
+				
+                For Each qtTest in testsToExecute
+                    ' Since the status is not reliable when failed due to reply error.
+                    
+                    If testRunStatus = "Error" Then
+                    	WScript.Echo("$$$$tEsTrUn StAtUs*****$$$$" & testRunStatus)
+                    	qtTest.Field("TS_EXEC_STATUS") = "Failed"
+                    	'tdFilter.Filter("TS_EXEC_STATUS") = "Failed"
+            	      	WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed") 
+            	        WScript.Echo("$$$$HERE IS THE$$$$ " & qtTest.Field("TS_EXEC_STATUS"))
+            		End If 
+                    If StrComp("Failed", qtTest.Field("TS_EXEC_STATUS")) = 0 Then
+                        Dim RunFactory
+                        Set RunFactory = TDConnection.RunFactory
+                        Dim runFilter
+                        Set runFilter = RunFactory.Filter
+                        runFilter.Filter("RN_TEST_ID") = qtTest.Field("TC_TEST_ID")
+                        runFilter.Filter("RN_EXECUTION_DATE") = qtTest.Field("TC_EXEC_DATE")
+                        runFilter.Filter("RN_EXECUTION_TIME") = """" & qtTest.Field("TC_EXEC_TIME") & """"
+                        Dim allRuns: Set allRuns = RunFactory.NewList(runFilter.Text)
+                        Dim theRun
+                        If allRuns.Count > 0 Then
+	                        For Each theRun In allRuns
+							'Wscript.Echo("Run Name: " & theRun.Field("RN_RUN_NAME"))
+	                            Dim StepFactory
+	                            Set StepFactory = TDConnection.StepFactory
+	                            Dim stepFilter
+	                            Set stepFilter = StepFactory.Filter
+	                            stepFilter.Filter("ST_RUN_ID") = theRun.Field("RN_RUN_ID")
+	                            Dim allSteps : Set allSteps = StepFactory.NewList(stepFilter.Text)
+	                            Dim theStep
+	                            Dim failedCounter
+	                            failedCounter = False
+	                            Dim foundLastStep
+	                            foundLastStep = False
+	                            If(allSteps.Count > 0) And (testFinished = True) Then
+		                            For Each theStep In allSteps
+										'WScript.Echo("Step Name: " & theStep.Field("ST_STEP_NAME"))
+		                                If StrComp("Failed", theStep.Field("ST_STATUS")) = 0 Then
+		                                    If StrComp("Replay Error", theStep.Field("ST_STEP_NAME")) = 0 Then
+		                                        ' ignore since it is replay error
+		                                    Else
+		                                    	'WScript.Echo ("Replay Error Not Found. Failure is legitimate.")
+		                                        failedCounter = True
+		                                        Exit For
+		                                    End If
+		                                End If
+		                                If StrComp("Command Parser", theStep.Field("ST_STEP_NAME")) = 0 Then
+		                                    foundLastStep = True
+		                                End If
+		                            Next
+	                            Else
+	                            	failedCounter = True
+	                            End If
+	                            ' this is actually failure. check to see if check in file is required.  If it is, we have
+	                            ' to check in file but now we don't have that yet, so we are going to fail.
+	                            ' Otherwise, we are going to mark this as passed
+	                            If failedCounter then
+	                                '  run contain error, don't have to adjust anything
+	                            Else
+	                                ' run didn't contain error but do we have last step?
+	                                If foundLastStep Then
+	                                    ' we do have last step
+	                                Else
+	                                    failedCounter = True
+	                                    WScript.Echo ("Cannot find last step in the script, so adjusting the status to Failed.")
+	                                End If
+	                            End If
+	                            If failedCounter then
+	                                WScript.Echo ("Run contains error.")
+	                                WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed")
+	                            Else                    
+	                                    WScript.Echo ("Run contains error but override and env file is not required.")
+	                                    WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Passed")                    
+	                            End If
+	                        Next
+                		Else
+                			WScript.Echo("$$$$IN last but one else block TEST EXECUTION STATUS$$$$" & qtTest.Field("TS_EXEC_STATUS"))
+                			WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed")
+                		End If
+                    Else
+                    	WScript.Echo("$$$$IN last else block TEST EXECUTION STATUS$$$$" & qtTest.Field("TS_EXEC_STATUS"))
+                    	 If testRunStatus = "Error" Then
+                    		WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":Failed") 
+            	         Else
+            	        	WScript.Echo(qtTest.Field("TC_USER_02") & ":" & qtTest.Field("TS_NAME") & ":" & qtTest.Field("TS_EXEC_STATUS")) 
+            	         End If 
+                    End If
+                Next        
+                Set TSScheduler = Nothing
+            End If
+        End If
+        On Error Resume Next
+            'Disconnect TD session
+            TDConnection.Disconnect
+            'Disconnect and quit QTP
+            If IsObject(qtApp) Then
+                If qtApp.TDConnection.IsConnected Then qtApp.TDConnection.Disconnect
+                qtApp.Quit
+            End If
+        On Error Goto 0
+        Set qtApp = Nothing
+        Set TDConnection = Nothing
+    End Sub
+End Class ''RunTestSet
+
+If Wscript.Arguments.Count <> 1 Then
+    WScript.Echo ("Password is required")
+Else
+    Password = Wscript.Arguments(0)
+    Call RunTestSet(Server, UserName, Password, QCDomain, QCProject, QCTestSetPath, QCTestSetName, QCTestName)
+End If

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+                                   "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Jul 24, 2015 10:08:38 AM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+ <class mutable="false"
+  name="gov.ca.calpers.psr.automation.AutomationFunctionalGroup" table="LOV_AUTO_FUNCTIONAL_GRP">
+  <id name="autoFunctionalGroupCode" type="java.lang.String">
+   <column length="3" name="LOV_AUTO_FUNCTIONAL_GRP_CD" sql-type="VARCHAR2"/>
+   <generator class="assigned"/>
+  </id>
+  <property generated="never" lazy="false"
+   name="createDate" type="java.util.Date">
+   <column name="CREATE_DATE" sql-type="DATE"/>
+  </property>
+  <property generated="never" lazy="false" name="updateDate" type="java.util.Date">
+   <column name="UPDATE_DATE" sql-type="DATE"/>
+  </property>
+  <property generated="never" lazy="false" name="shortName" type="java.lang.String">
+   <column length="20" name="SHORT_NAME" sql-type="VARCHAR2"/>
+  </property>
+  <property generated="never" lazy="false" name="longName" type="java.lang.String">
+   <column length="40" name="LONG_NAME" sql-type="VARCHAR2"/>
+  </property>
+  <property generated="never" lazy="false" name="description" type="java.lang.String">
+   <column length="100" name="DESCRIPTION" sql-type="VARCHAR2"/>
+  </property>
+ </class>
+</hibernate-mapping>

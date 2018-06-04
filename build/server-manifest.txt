@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: gov.ca.calpers.psr.automation.BatchJobApplication.BatchJobScheduler
+SplashScreen-Image: server_splash.png
+Class-Path: lib/

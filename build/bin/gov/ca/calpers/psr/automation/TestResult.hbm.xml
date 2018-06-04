@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Sep 10, 2015 11:52:41 AM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="gov.ca.calpers.psr.automation.TestResult" table="TESTRESULT">
+        <id name="id" type="java.lang.Long" access="field">
+            <column name="ID" />
+            <generator class="sequence">
+            	<param name="sequence">TEST_RESULT_SEQ</param>
+            </generator>
+        </id>
+        <many-to-one name="testSet" class="gov.ca.calpers.psr.automation.AutomationTestSet" not-null="true" >
+            <column name="AUTOMATION_TEST_SET_ID" />
+        </many-to-one>        
+        
+        <many-to-one name="test" class="gov.ca.calpers.psr.automation.AutomationTest" not-null="true" >
+            <column name="AUTOMATION_SCRIPT_ID" />
+        </many-to-one>
+        <property name="executionStatus">
+            <column name="EXECUTION_STATUS" />
+            <type name="org.hibernate.type.EnumType">
+                <param name="useNamed">true</param>
+                <param name="enumClass">gov.ca.calpers.psr.automation.ExecutionStatus</param>
+            </type>
+        </property>               
+        <property name="startTime" type="long">
+            <column name="START_TIME" />
+        </property>
+        <property name="runCount" type="int" access="field">
+            <column name="RUN_COUNT" />
+        </property>
+        <property name="finalDuration" type="long">
+            <column name="FINAL_DURATION" />
+        </property>
+        <property name="client" type="java.lang.String">
+            <column name="CLIENT" />
+        </property>
+     
+    </class>
+</hibernate-mapping>

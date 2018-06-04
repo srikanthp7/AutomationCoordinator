@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Jul 21, 2015 5:55:18 PM by Hibernate Tools 3.4.0.CR1 -->
+<hibernate-mapping>
+    <class name="gov.ca.calpers.psr.automation.AutomationTest" table="AUTOMATION_SCRIPT" mutable="false">
+        <id name="testId" type="long" access="field">
+            <column name="AUTOMATION_SCRIPT_ID" />
+            <generator class="sequence-identity"/>            	
+        </id>
+        <property name="testName" type="java.lang.String">
+            <column name="SCRIPT_NAME" />
+        </property>
+        <property name="createDate" type="java.util.Date" access="field">
+            <column name="CREATE_DATE" />
+        </property>
+        <property name="updateDate" type="java.util.Date" access="field">
+            <column name="UPDATE_DATE" />
+        </property>
+        <property name="scriptTypeCode" type="java.lang.String" access="field">
+            <column name="LOV_SCRIPT_TYPE_CD" />
+        </property>
+        <property name="scriptStatusCode" type="java.lang.String" access="field">
+            <column name="LOV_SCRIPT_STATUS_CD" />
+        </property>
+        <property name="autoFunctionalGroupCode" type="java.lang.String" access="field">
+            <column name="LOV_AUTO_FUNCTIONAL_GRP_CD" />
+        </property>
+        <property name="functionalGroupCode" type="java.lang.String" access="field">
+            <column name="LOV_FUNCTIONAL_GRP_CD" />
+        </property>
+        <property name="rollIndicator" update="false" not-null="true" type="RollIndicatorUserType">
+            <column name="LOV_ROLL_IND_CD" />                        
+        </property>        
+        <property name="queryIndicator" type="java.lang.String" access="field">
+            <column name="QUERY_IND" />
+        </property>
+        <property name="distributeFormInd" type="java.lang.String" access="field">
+            <column name="DISTRIBUTE_FORM_IND" />
+        </property>
+        <property name="updatedBy" type="java.lang.String" access="field">
+            <column name="UPDATED_BY" />
+        </property>
+        <property name="qcTestId" type="int" access="field">
+            <column name="QC_TEST_ID" />
+        </property>
+        <set name="testDependencies" table="SCRIPT_DEPENDENCIES" 
+				inverse="true" lazy="false">
+            <key>
+                <column name="AUTOMATION_SCRIPT_ID" not-null="true" />
+            </key>
+            <one-to-many class="gov.ca.calpers.psr.automation.TestDependency" />
+        </set>                
+    </class>
+</hibernate-mapping>
