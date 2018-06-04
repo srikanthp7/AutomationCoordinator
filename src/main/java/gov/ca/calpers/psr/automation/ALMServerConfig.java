@@ -16,7 +16,7 @@ import gov.ca.calpers.psr.automation.pojo.HibernateUtil;
 /**
  * The Class ALMServerConfig.
  *
- * @author srikanth
+ * @author srikanth pdoshetty
  */
 public class ALMServerConfig implements Serializable{
 	
