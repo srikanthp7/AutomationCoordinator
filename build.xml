@@ -74,8 +74,8 @@
      
        	<manifest>
        	  <attribute name="Built-By" value="${user.name}"/>
-       	  <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> 
-       		<!-- <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />-->
+       	  <!-- <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> -->
+       		 <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />
        	  <attribute name="SplashScreen-Image" value="client_splash.png" />
        	  <attribute name="Class-Path" value="libraries.path"/>
        	</manifest>
@@ -89,8 +89,8 @@
  	 			       
 		<manifest>
 		       	  <attribute name="Built-By" value="${user.name}"/>
-				  <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> 
-			<!--    <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />-->
+			<!--   <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.client.ui.ClientPanel" /> -->
+		   <attribute name="Main-Class" value="gov.ca.calpers.psr.automation.server.ui.ServerApplication" />
 		       	  <attribute name="SplashScreen-Image" value="client_splash.png" />
 		       	  <attribute name="Class-Path" value="libraries.path"/>
 		       	</manifest>
